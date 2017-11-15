@@ -8,21 +8,22 @@ var fnMain = (function() {
     }
 
     function getConfig() {
-        const pstring = '#49496A,#D2FB78,#C13BFE,#5821D4,#49CDF6';
+        //const pstring = '#49496A,#D2FB78,#C13BFE,#5821D4,#49CDF6';
         //const pstring = 'yellow,#22BCBC,yellow';
         //const pstring = 'black,white,black';
+        const pstring = 'cyan,magenta,cyan';
         const palette = pstring.split(',');
         return {
             nSides: 6,
             shapeRadius: 0.09,
             shapeHolePercent: 1,
-            shrinkPercent: 0.73,
-            spinDuration: 1200,
-            spinOffset: 2,
+            shrinkPercent: 0.7,
+            spinDuration: 700,
+            spinOffset: 3,
             spinPause: 500,
-            spinEasing: 'easeInQuad',
+            spinEasing: 'easeOutQuad',
             screenMargin: 0, //percent on each edge not included in 'board' rectangle
-            colorScale: chroma.scale(palette).mode('lab'), //modes: lch, lab, hsl, rgb
+            colorScale: chroma.scale(palette).mode('hsl'), //modes: lch, lab, hsl, rgb
             shapeAlpha: 1,
             shapeBlendMode: PIXI.BLEND_MODES.NORMAL,
             palette: palette,
@@ -52,6 +53,26 @@ var fnMain = (function() {
 
     function portion(i, size) {
         return i / ((size -1) || 1);
+    }
+
+    function makeBackground(config, screenRect, renderer) {
+        const canvasElement = document.createElement('canvas');
+        canvasElement.width = screenRect.width;
+        canvasElement.height = screenRect.height;
+        const context = canvasElement.getContext('2d');
+        const gradient = context.createLinearGradient(screenRect.x, screenRect.y, screenRect.width, screenRect.height);
+        const steps = 10;
+        for(let i = 0; i < steps; i++) {
+            const p = portion(i,steps);
+            const color = config.colorScale(p).name();
+            gradient.addColorStop(p, color);
+        }
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, screenRect.width, screenRect.height);
+        //----
+        const texture = PIXI.Texture.fromCanvas(canvasElement);
+        const sprite = new PIXI.Sprite(texture);
+        return sprite;
     }
 
     function drawNSideRegular(graphics, nSides, centerX, centerY, radius, color24, alpha) {
@@ -99,7 +120,7 @@ var fnMain = (function() {
                 const color = RGBTo24bit(config.colorScale(diagDist(j,k)).rgb());
                 const polygonPoints = drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, config.shapeRadius, config.backgroundColor, 1);
                 const smallerRadius = Math.round(config.shapeRadius * config.shapeHolePercent);
-                drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, color, config.shapeAlpha);
+                drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, 0xFFFFFF, config.shapeAlpha);
                 const texture = PIXI.RenderTexture.create(diameter, diameter);
                 renderer.render(g, texture);
                 const sprite = new PIXI.Sprite(texture);
@@ -174,6 +195,8 @@ var fnMain = (function() {
         const smaller = board.width < board.height ? board.width : board.height;
         config.shapeRadius = Math.round(config.shapeRadius * smaller);
         const shapes = makeShapes(config, board, app.renderer);
+        const background = makeBackground(config, app.screen, app.renderer);
+        app.stage.addChild(background);
         for(let s of shapes) {
             app.stage.addChild(s.sprite);
         }
@@ -184,6 +207,7 @@ var fnMain = (function() {
             board: board,
             animation: animation,
             shapes: shapes,
+            background: background,
         };
         return function(recorder) {
             state.recorder = recorder || {capture: function(){}};
