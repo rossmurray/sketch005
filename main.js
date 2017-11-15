@@ -15,19 +15,19 @@ var fnMain = (function() {
         const palette = pstring.split(',');
         return {
             nSides: 6,
-            shapeRadius: 0.09,
-            shapeHolePercent: 1,
-            shrinkPercent: 0.7,
-            spinDuration: 700,
-            spinOffset: 3,
-            spinPause: 500,
+            shapeRadius: 0.07,
+            shapeHolePercent: 0.96,
+            shrinkPercent: 0.5,
+            spinDuration: 600,
+            spinOffset: 3.5,
+            spinPause: 300,
             spinEasing: 'easeOutQuad',
             screenMargin: 0, //percent on each edge not included in 'board' rectangle
             colorScale: chroma.scale(palette).mode('hsl'), //modes: lch, lab, hsl, rgb
             shapeAlpha: 1,
-            shapeBlendMode: PIXI.BLEND_MODES.NORMAL,
+            shapeBlendMode: PIXI.BLEND_MODES.ADD,
             palette: palette,
-            backgroundColor: 0x0,
+            backgroundColor: 0xFFFFFF,
         };
     }
 
@@ -78,13 +78,16 @@ var fnMain = (function() {
     function drawNSideRegular(graphics, nSides, centerX, centerY, radius, color24, alpha) {
         graphics.beginFill(color24, alpha);
         const points = makeRange(nSides).map((x,i) => {
-            const fixedRotation = 0.25;
-            const amountAround = i / nSides + fixedRotation;
+            //const fixedRotation = 0.25;
+            const amountAround = i / nSides;// + fixedRotation;
             const vx = radius * Math.cos(Math.PI * 2 * amountAround) + centerX;
             const vy = radius * Math.sin(Math.PI * 2 * amountAround) + centerY;
             const point = new PIXI.Point(Math.round(vx) + 0, Math.round(vy) + 0);
             return point;
         });
+        //fix precision error (?) with shape vertices.
+        points[2].x = points[4].x;
+
         graphics.drawPolygon(points);
         graphics.endFill();
         graphics.lineStyle(5, 0x0);
@@ -101,8 +104,8 @@ var fnMain = (function() {
     function makeShapes(config, board, renderer) {
         const diameter = config.shapeRadius * 2;
         const testPoints = drawNSideRegular(new PIXI.Graphics(), config.nSides, config.shapeRadius, config.shapeRadius, config.shapeRadius, config.backgroundColor, 1);
-        const shapeWidth = testPoints[5].x - testPoints[1].x;
-        const shapeHeight = (diameter + (testPoints[1].y - testPoints[2].y)) / 2;
+        const shapeWidth = testPoints[2].y - testPoints[4].y;
+        const shapeHeight = (diameter + (testPoints[1].x - testPoints[2].x)) / 2;
         const colCount = Math.ceil(board.width / shapeWidth) + 1;
         const rowCount = Math.ceil(board.height / shapeHeight) + 1;
         const shapeCount = colCount * rowCount;
@@ -118,9 +121,9 @@ var fnMain = (function() {
                 g.width = diameter;
                 g.height = diameter;
                 const color = RGBTo24bit(config.colorScale(diagDist(j,k)).rgb());
-                const polygonPoints = drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, config.shapeRadius, config.backgroundColor, 1);
                 const smallerRadius = Math.round(config.shapeRadius * config.shapeHolePercent);
-                drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, 0xFFFFFF, config.shapeAlpha);
+                const polygonPoints = drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
+                //drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
                 const texture = PIXI.RenderTexture.create(diameter, diameter);
                 renderer.render(g, texture);
                 const sprite = new PIXI.Sprite(texture);
@@ -130,6 +133,7 @@ var fnMain = (function() {
                 sprite.y = board.top + k * shapeHeight;
                 sprite.anchor.set(0.5, 0.5);
                 sprite.blendMode = config.shapeBlendMode;
+                sprite.rotation = Math.PI * 0.5;
                 shape.sprite = sprite;
             }
         }
