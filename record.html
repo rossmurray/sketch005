@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>record</title>
+  <style>
+  html {
+    height: 100%;
+    width: 100%;
+  }
+  body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    border: 0;
+  }
+  canvas#main {
+    position: absolute;
+    left: 0px;
+    top: 40px;
+  }
+  </style>
+</head>
+  <script src="lib/pixi.min.js"></script>
+  <script src="lib/anime.min.js"></script>
+  <script src="lib/chroma.min.js"></script>
+  <script src="lib/CCapture.all.min.js"></script>
+<body>
+    <button id="startButton">Start</button>
+  <button id="recordButton">Record</button>
+  <button id="bothButton">Both</button>
+  <p id="progress" style="display: inline;">0%</p>
+  <canvas id="main"></canvas>
+  <script type="text/javascript">
+    (function(){
+      const canvas = document.getElementById('main');
+      canvas.width = 1080;
+      canvas.height = 1080;
+    })();
+  </script>
+  <script type="text/javascript">
+    (function() {
+      const timeLimit = 4800;
+      const captureConfig = {
+        framerate: 60,
+        format: 'webm',
+        quality: 90,
+      };
+      const recorder = new CCapture(captureConfig);
+      const canvas = document.getElementById('main');
+      const recordButton = document.getElementById('recordButton');
+      recordButton.onclick = function() {
+        recordAndDownload(recorder, timeLimit);
+      };
+      const startButton = document.getElementById('startButton');
+      startButton.onclick = function() {
+        window.fnMain(recorder)
+      };
+      const bothButton = document.getElementById('bothButton');
+      bothButton.onclick = function() {
+        window.fnMain(recorder);
+        recordAndDownload(recorder, timeLimit);
+      };
+
+      let timePassed = 0;
+      const progel = document.getElementById('progress');
+      function progress() {
+        timePassed += 100;
+        progel.innerHTML = "" + Math.floor((timePassed / timeLimit) * 100) + "%";
+        if(timePassed < timeLimit) {
+          setTimeout(progress, 100);
+        }
+        else {
+          progel.innerHTML = "100%";
+        }
+      }
+
+      function recordAndDownload(recorder, durationMs) {
+        recorder.start();
+        setTimeout(() => {
+          recorder.stop();
+          setTimeout(() => {
+            recorder.save();
+          }, 100);
+        }, durationMs);
+        setTimeout(progress, 100);
+      }
+    })();
+  </script>
+  <script type="text/javascript" src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>005</title>
+  <style>
+  html {
+    height: 100%;
+    width: 100%;
+  }
+  body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    border: 0;
+  }
+  canvas#main {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+  </style>
+</head>
+  <script src="lib/pixi.min.js"></script>
+  <script src="lib/anime.min.js"></script>
+  <script src="lib/chroma.min.js"></script>
+<body>
+  <canvas id="main"></canvas>
+  <script type="text/javascript">
+    (function(){
+      let canvas = document.getElementById('main');
+       canvas.width = window.innerWidth;
+       canvas.height = window.innerHeight;
+      // canvas.width = 800;
+      // canvas.height = 800;
+    })();
+  </script>
+  <script type="text/javascript" src="main.js"></script>
+  <script type="text/javascript">
+    fnMain();
+  </script>
+</body>
+</html>
