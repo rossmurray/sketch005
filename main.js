@@ -145,6 +145,7 @@ var fnMain = (function() {
         const timeline = anime.timeline({
             autoplay: false,
             loop: true,
+            duration: 0,
         });
         const distFromMid = function() {
             const midX = board.left + (board.width / 2);
@@ -160,38 +161,27 @@ var fnMain = (function() {
         }();
         for(let i = 0; i < shapes.length; i++) {
             const shape = shapes[i];
-            //duration that a shape is not moving:
             const pauseInterval = config.animationDuration * config.animationOffset;
             const offset = (1-distFromMid(shape.sprite)) * pauseInterval;
             const initialRotation = shape.sprite.rotation;
             const rotations = [Math.PI * 2/3, Math.PI * 4/3, Math.PI * 2].map(x => x + initialRotation);
+            const r = rotations;
             const halfDuration = config.animationDuration / 2;
-            const shrinkConfig = [1,2,3].map(x => {return [{
-                value: config.shrinkPercent,
-                duration: halfDuration,
-            },{
-                value: 1,
-                duration: halfDuration,
-            },{
-                value: 1,
-                duration: pauseInterval
-            }];}).reduce((a,b) => a.concat(b),[]);
-            const turnConfig = [0,1,2].map(x => {return [{
-                value: rotations[x],
-                duration: config.animationDuration,
-            },{
-                value: rotations[x],
-                duration: pauseInterval,
-            }];}).reduce((a,b) => a.concat(b),[]);
+            const shrink = {value: config.shrinkPercent, duration: halfDuration};
+            const unshrink = {value: 1, duration: halfDuration};
+            const pause = x => {return{value: x, duration: pauseInterval};};
+            const spin = x => {return{value: rotations[x], duration: config.animationDuration};}
+            const shrinkAnimation = [shrink,unshrink,pause(1),shrink,unshrink,pause(1),shrink,unshrink];
+            const spinAnimation = [spin(0), pause(r[0]), spin(1), pause(r[1]), spin(2)];
             timeline.add({
                 targets: shape.sprite.scale,
-                x: shrinkConfig,
-                y: shrinkConfig,
+                x: shrinkAnimation,
+                y: shrinkAnimation,
                 easing: config.shrinkEasing,
                 offset: offset,
             }).add({
                 targets: shape.sprite,
-                rotation: turnConfig,
+                rotation: spinAnimation,
                 easing: config.spinEasing,
                 offset: offset,
             });
