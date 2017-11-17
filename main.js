@@ -14,20 +14,19 @@ var fnMain = (function() {
         const pstring = '#DDDF99,#22DD22,navy,plum';
         const palette = pstring.split(',');
         return {
-            shapeRadius: 0.07,
+            shapeRadius: 0.08,
             shapeHolePercent: 1.01,
             shrinkPercent: 0.7,
-            animationDuration: 1000,
+            animationDuration: 1300,
             animationOffset: 1.5,
-            animationPause: 300,
-            shrinkEasing: 'easeInOutSine',
-            spinEasing: 'easeOutQuad',
-            screenMargin: 0, //percent on each edge not included in 'board' rectangle
+            shrinkEasing: 'easeInSine',
+            spinEasing: 'easeInCubic',
+            screenMargin: 0, //percent of each axis not included in 'board' rectangle
             colorScale: chroma.scale(palette).mode('lab'), //modes: lch, lab, hsl, rgb
             shapeAlpha: 1,
             shapeBlendMode: PIXI.BLEND_MODES.NORMAL,
             palette: palette,
-            backgroundColor: 0xFFFFFF,
+            backgroundColor: 0x0,
         };
     }
 
@@ -79,8 +78,7 @@ var fnMain = (function() {
         graphics.beginFill(color24, alpha);
         const sides = 6;
         const points = makeRange(sides).map((x,i) => {
-            //const fixedRotation = 0.25;
-            const amountAround = i / sides;// + fixedRotation;
+            const amountAround = i / sides;
             const vx = radius * Math.cos(Math.PI * 2 * amountAround) + centerX;
             const vy = radius * Math.sin(Math.PI * 2 * amountAround) + centerY;
             const point = new PIXI.Point(Math.round(vx) + 0, Math.round(vy) + 0);
@@ -91,7 +89,7 @@ var fnMain = (function() {
 
         graphics.drawPolygon(points);
         graphics.endFill();
-        graphics.lineStyle(5, 0x0);
+        graphics.lineStyle(5, 0xFFFFFF);
         graphics.moveTo(Math.round(centerX),Math.round(centerY));
         graphics.lineTo(points[0].x, points[0].y)
         graphics.moveTo(Math.round(centerX),Math.round(centerY));
