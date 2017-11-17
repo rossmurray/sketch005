@@ -8,25 +8,26 @@ var fnMain = (function() {
     }
 
     function getConfig() {
-        //const pstring = '#49496A,#D2FB78,#C13BFE,#5821D4,#49CDF6';
-        //const pstring = 'yellow,#22BCBC,yellow';
+        const pstring = '#C800D3,#FAD927,#11C7AC,#0B00C9';
+        //const pstring = '#FF0A60,#FFB538,#218E89,#3B0550';
         //const pstring = 'black,white,black';
-        const pstring = '#DDDF99,#22DD22,navy,plum';
+        //const pstring = '#DDDF99,#22DD22,navy,plum';
         const palette = pstring.split(',');
         return {
             shapeRadius: 0.08, //relative to board
             shapeHolePercent: 1.01,
             hexOuterBorderWidth: 0.1, //percent of shape diameter
-            hexInnerBorderWidth: 0.04,
-            shrinkPercent: 0.7,
-            animationDuration: 1300,
-            animationOffset: 1.5,
+            hexInnerBorderWidth: 0.0,
+            shrinkPercent: 0.3,
+            animationDuration: 1900,
+            animationOffset: 0.75,
+            cyclePause: 1000,
             shrinkEasing: 'easeInSine',
             spinEasing: 'easeInCubic',
             screenMargin: 0, //percent of each axis not included in 'board' rectangle
-            colorScale: chroma.scale(palette).mode('lab'), //modes: lch, lab, hsl, rgb
+            colorScale: chroma.bezier(palette), //modes: lch, lab, hsl, rgb
             shapeAlpha: 1,
-            shapeBlendMode: PIXI.BLEND_MODES.NORMAL,
+            shapeBlendMode: PIXI.BLEND_MODES.MULTIPLY,
             palette: palette,
             backgroundColor: colorNameToNumber('black'),
             hexInnerBorderColor: 'black',
@@ -75,7 +76,7 @@ var fnMain = (function() {
         const steps = 10;
         for(let i = 0; i < steps; i++) {
             const p = portion(i,steps);
-            const color = config.colorScale(p).name();
+            const color = config.colorScale(p).brighten(1).saturate(2).name();
             gradient.addColorStop(p, color);
         }
         context.fillStyle = gradient;
@@ -117,6 +118,7 @@ var fnMain = (function() {
         g.drawPolygon(quad2);
         g.endFill();
 
+        //draw inner border
         const innerBorderWidth = Math.round(config.hexInnerBorderWidth * diameter);
         g.lineStyle(innerBorderWidth, colorNameToNumber(config.hexInnerBorderColor));
         g.moveTo(radius, radius);
@@ -127,7 +129,9 @@ var fnMain = (function() {
         g.lineTo(outerPoints[4].x, outerPoints[4].y)
         g.lineStyle(0);
 
-        const smallerRadius = Math.round(config.shapeRadius * config.shapeHolePercent);
+        //todo draw outer border
+
+        //const smallerRadius = Math.round(config.shapeRadius * config.shapeHolePercent);
         //const polygonPoints = drawHexagon(g, config.shapeRadius, config.shapeRadius, config.shapeRadius, 0x0, config.shapeAlpha);
         //drawHexagon(g, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
         const texture = PIXI.RenderTexture.create(diameter, diameter);
@@ -223,6 +227,7 @@ var fnMain = (function() {
             loop: true,
             duration: 0,
         });
+        const dummy = {x:0};
         const distFromMid = function() {
             const midX = board.left + (board.width / 2);
             const midY = board.top + (board.height / 2);
@@ -262,6 +267,11 @@ var fnMain = (function() {
                 offset: offset,
             });
         }
+        timeline.add({
+            targets: dummy,
+            x: 0,
+            duration: config.cyclePause,
+        });
         return timeline;
     }
 
