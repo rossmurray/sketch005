@@ -11,21 +11,21 @@ var fnMain = (function() {
         //const pstring = '#49496A,#D2FB78,#C13BFE,#5821D4,#49CDF6';
         //const pstring = 'yellow,#22BCBC,yellow';
         //const pstring = 'black,white,black';
-        const pstring = 'cyan,magenta,cyan';
+        const pstring = '#DDDF99,#22DD22,navy,plum';
         const palette = pstring.split(',');
         return {
-            nSides: 6,
             shapeRadius: 0.07,
-            shapeHolePercent: 0.96,
-            shrinkPercent: 0.5,
-            spinDuration: 600,
-            spinOffset: 3.5,
-            spinPause: 300,
+            shapeHolePercent: 1.01,
+            shrinkPercent: 0.7,
+            animationDuration: 1000,
+            animationOffset: 1.5,
+            animationPause: 300,
+            shrinkEasing: 'easeInOutSine',
             spinEasing: 'easeOutQuad',
             screenMargin: 0, //percent on each edge not included in 'board' rectangle
-            colorScale: chroma.scale(palette).mode('hsl'), //modes: lch, lab, hsl, rgb
+            colorScale: chroma.scale(palette).mode('lab'), //modes: lch, lab, hsl, rgb
             shapeAlpha: 1,
-            shapeBlendMode: PIXI.BLEND_MODES.ADD,
+            shapeBlendMode: PIXI.BLEND_MODES.NORMAL,
             palette: palette,
             backgroundColor: 0xFFFFFF,
         };
@@ -75,11 +75,12 @@ var fnMain = (function() {
         return sprite;
     }
 
-    function drawNSideRegular(graphics, nSides, centerX, centerY, radius, color24, alpha) {
+    function drawHexagon(graphics, centerX, centerY, radius, color24, alpha) {
         graphics.beginFill(color24, alpha);
-        const points = makeRange(nSides).map((x,i) => {
+        const sides = 6;
+        const points = makeRange(sides).map((x,i) => {
             //const fixedRotation = 0.25;
-            const amountAround = i / nSides;// + fixedRotation;
+            const amountAround = i / sides;// + fixedRotation;
             const vx = radius * Math.cos(Math.PI * 2 * amountAround) + centerX;
             const vy = radius * Math.sin(Math.PI * 2 * amountAround) + centerY;
             const point = new PIXI.Point(Math.round(vx) + 0, Math.round(vy) + 0);
@@ -103,7 +104,7 @@ var fnMain = (function() {
 
     function makeShapes(config, board, renderer) {
         const diameter = config.shapeRadius * 2;
-        const testPoints = drawNSideRegular(new PIXI.Graphics(), config.nSides, config.shapeRadius, config.shapeRadius, config.shapeRadius, config.backgroundColor, 1);
+        const testPoints = drawHexagon(new PIXI.Graphics(), config.shapeRadius, config.shapeRadius, config.shapeRadius, config.backgroundColor, 1);
         const shapeWidth = testPoints[2].y - testPoints[4].y;
         const shapeHeight = (diameter + (testPoints[1].x - testPoints[2].x)) / 2;
         const colCount = Math.ceil(board.width / shapeWidth) + 1;
@@ -122,8 +123,8 @@ var fnMain = (function() {
                 g.height = diameter;
                 const color = RGBTo24bit(config.colorScale(diagDist(j,k)).rgb());
                 const smallerRadius = Math.round(config.shapeRadius * config.shapeHolePercent);
-                const polygonPoints = drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
-                //drawNSideRegular(g, config.nSides, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
+                const polygonPoints = drawHexagon(g, config.shapeRadius, config.shapeRadius, config.shapeRadius, 0x0, config.shapeAlpha);
+                drawHexagon(g, config.shapeRadius, config.shapeRadius, smallerRadius, config.backgroundColor, config.shapeAlpha);
                 const texture = PIXI.RenderTexture.create(diameter, diameter);
                 renderer.render(g, texture);
                 const sprite = new PIXI.Sprite(texture);
@@ -145,32 +146,52 @@ var fnMain = (function() {
             autoplay: false,
             loop: true,
         });
+        const distFromMid = function() {
+            const midX = board.left + (board.width / 2);
+            const midY = board.top + (board.height / 2);
+            const maxDistance = Math.sqrt(board.width*board.width + board.height*board.height) / 2;
+            return function(point) {
+                const dx = (point.x - midX) / maxDistance;
+                const dy = (point.y - midY) / maxDistance;
+                const result = Math.sqrt(dx*dx + dy*dy);
+                console.log(result);
+                return result;// / maxDistance;
+            };
+        }();
         for(let i = 0; i < shapes.length; i++) {
             const shape = shapes[i];
-            const offset = (1 - portion(i, shapes.length)) * (config.spinDuration * config.spinOffset);
-            timeline
-            .add({
+            //duration that a shape is not moving:
+            const pauseInterval = config.animationDuration * config.animationOffset;
+            const offset = (1-distFromMid(shape.sprite)) * pauseInterval;
+            const initialRotation = shape.sprite.rotation;
+            const rotations = [Math.PI * 2/3, Math.PI * 4/3, Math.PI * 2].map(x => x + initialRotation);
+            const halfDuration = config.animationDuration / 2;
+            const shrinkConfig = [1,2,3].map(x => {return [{
+                value: config.shrinkPercent,
+                duration: halfDuration,
+            },{
+                value: 1,
+                duration: halfDuration,
+            },{
+                value: 1,
+                duration: pauseInterval
+            }];}).reduce((a,b) => a.concat(b),[]);
+            const turnConfig = [0,1,2].map(x => {return [{
+                value: rotations[x],
+                duration: config.animationDuration,
+            },{
+                value: rotations[x],
+                duration: pauseInterval,
+            }];}).reduce((a,b) => a.concat(b),[]);
+            timeline.add({
                 targets: shape.sprite.scale,
-                x: [{
-                    value: config.shrinkPercent,
-                    duration: config.spinDuration,
-                },{
-                    value: 1,
-                    duration: config.spinDuration,
-                },{
-                    value: 1,
-                    duration: config.spinPause
-                }],
-                y: [{
-                    value: config.shrinkPercent,
-                    duration: config.spinDuration,
-                },{
-                    value: 1,
-                    duration: config.spinDuration,
-                },{
-                    value: 1,
-                    duration: config.spinPause
-                }],
+                x: shrinkConfig,
+                y: shrinkConfig,
+                easing: config.shrinkEasing,
+                offset: offset,
+            }).add({
+                targets: shape.sprite,
+                rotation: turnConfig,
                 easing: config.spinEasing,
                 offset: offset,
             });
